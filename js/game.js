@@ -50,8 +50,8 @@ planets.push({
     color: 0xe02a63,
     x: 500,
     y: 650,
-    power: 10,
-    level: 5,
+    power: 150,
+    level: 3,
     sprite: {},
     ships: [],
     updated: -1
@@ -80,9 +80,16 @@ var createShip = function (actor, dx, dy) {
     sprite.y = actor.y + dy;
     sprite.anchor.set(0.5, 0.5);
     
+    var speed = 0;
+    while (Math.abs(speed) < 0.25) {
+        speed = Math.random() - 0.5;
+    }
+    
     return {
         team: actor.team,
         color: actor.color,
+        angle: Math.random() * 360,
+        speed: speed,
         sprite: sprite
     };
 }
@@ -128,6 +135,37 @@ var moveShips = function (source, target) {
     }
 }
 
+// Get the location of an orbiting ship
+var getShipLocation = function (angle, centerx, centery, radius) {
+    return {
+        x: centerx + radius * Math.cos(angle),
+        y: centery + radius * Math.sin(angle)
+    }
+}
+
+// Get a point a specified number of pixels between two other points
+var getMidPoint = function (x1, y1, x2, y2, dist) {
+    var distx = x1 - x2;
+    var disty = y1 - y2;
+    var distActual = Math.sqrt(distx * distx + disty * disty);
+    
+    // Ratio of desired distance to the actual distance
+    var t = dist / distActual;
+    
+    if (t > dist) {
+        return {
+            x: x2,
+            y: y2
+        }
+    }
+    else {
+        return {
+            x: (1 - t) * x1 + t * x2,
+            y: (1 - t) * y1 + t * y2
+        }
+    }
+}
+
 // Game loop
 var totalSeconds = 0;
 app.ticker.add((delta) => {totalSeconds
@@ -137,7 +175,7 @@ app.ticker.add((delta) => {totalSeconds
     
     for (var i = 0; i < planets.length; i++) {        
         // Update strengths
-        planets[i].power += planets[i].level * seconds * growthFactor;
+        // planets[i].power += planets[i].level * seconds * growthFactor;
         var size = getSizeFromPower(planets[i].power);
         planets[i].sprite.width = size;
         planets[i].sprite.height = size;
@@ -157,50 +195,68 @@ app.ticker.add((delta) => {totalSeconds
         // Update the ships
         for (var s = 0; s < planets[i].ships.length; s++) {
             
-            // Keep them somewhat close to the planet
-            var distx = planets[i].sprite.x - planets[i].ships[s].sprite.x;
-            var disty = planets[i].sprite.y - planets[i].ships[s].sprite.y;
-            var dist = Math.sqrt(distx * distx + disty * disty);
+            // Get a point on the desired orbit path
+            var orbit = getShipLocation(planets[i].ships[s].angle, planets[i].sprite.x, planets[i].sprite.y, size * 0.75);
+            planets[i].ships[s].angle += planets[i].ships[s].speed * seconds;
             
-            // Random movement
-            var range = 10;
-            var dx = Math.random() * range - range / 2;
-            var dy = Math.random() * range - range / 2;
+            // Throw in a little randomness
+            // var range = 2;
+            // var dx = Math.random() * range - range / 2;
+            // var dy = Math.random() * range - range / 2;
+                        
+            // Calculate a step towards the desired orbit path
+            var midpoint = getMidPoint(planets[i].ships[s].sprite.x, planets[i].ships[s].sprite.y, orbit.x, orbit.y, planets[i].ships[s].speed);
             
-            if (dist > size * 2) {
-                // They've been sent to a far-away planet
-                dx += distx * 0.02;
-                dy += disty * 0.02;
-            }
-            else if (dist > size) {
-                // Form a ring around the planet
-                dx += distx * 0.01;
-                dy += disty * 0.01;
-            }
-            else if (dist < size) {
-                // Stay away from the non-visible center of the planet
-                dx -= distx * 0.01;
-                dy -= disty * 0.01;
-            }
+            
+            
+            // // Keep them somewhat close to the planet
+            // var distx = planets[i].sprite.x - planets[i].ships[s].sprite.x;
+            // var disty = planets[i].sprite.y - planets[i].ships[s].sprite.y;
+            // var dist = Math.sqrt(distx * distx + disty * disty);
+            
+            // // Random movement
+            // var range = 10;
+            // var dx = Math.random() * range - range / 2;
+            // var dy = Math.random() * range - range / 2;
+            
+            // if (dist > size * 2) {
+                // // They've been sent to a far-away planet
+                // dx += distx * 0.02;
+                // dy += disty * 0.02;
+            // }
+            // else if (dist > size) {
+                // // Form a ring around the planet
+                // dx += distx * 0.01;
+                // dy += disty * 0.01;
+            // }
+            // else if (dist < size) {
+                // // Stay away from the non-visible center of the planet
+                // dx -= distx * 0.01;
+                // dy -= disty * 0.01;
+            // }
             
             // Update ship location
-            planets[i].ships[s].sprite.x += dx * delta;
-            planets[i].ships[s].sprite.y += dy * delta;
+            planets[i].ships[s].sprite.x = midpoint.x;
+            planets[i].ships[s].sprite.y = midpoint.y;
+            // planets[i].ships[s].sprite.x += dx * delta;
+            // planets[i].ships[s].sprite.y += dy * delta;
             
             // Process battles
             for (var enemy = planets[i].ships.length - 1; enemy > s; enemy--) {
-                if (planets[i].ships[enemy].team != planets[i].ships[s].team) {
-                    // Get the distance to the enemy ship
-                    var ex = planets[i].ships[enemy].sprite.x - planets[i].ships[s].sprite.x;
-                    var ey = planets[i].ships[enemy].sprite.y - planets[i].ships[s].sprite.y;
-                    var edist = Math.sqrt(ex * ex + ey * ey);
-                    
-                    // Destroy both ships
-                    if (edist <= 2) {
-                        app.stage.removeChild(planets[i].ships[enemy].sprite);
-                        app.stage.removeChild(planets[i].ships[s].sprite);
-                        planets[i].ships.splice(enemy, 1);
-                        planets[i].ships.splice(s, 1);
+                if (planets[i].ships.length > enemy) {
+                    if (planets[i].ships[enemy].team != planets[i].ships[s].team) {
+                        // Get the distance to the enemy ship
+                        var ex = planets[i].ships[enemy].sprite.x - planets[i].ships[s].sprite.x;
+                        var ey = planets[i].ships[enemy].sprite.y - planets[i].ships[s].sprite.y;
+                        var edist = Math.sqrt(ex * ex + ey * ey);
+                        
+                        // Destroy both ships
+                        if (edist <= 2) {
+                            app.stage.removeChild(planets[i].ships[enemy].sprite);
+                            app.stage.removeChild(planets[i].ships[s].sprite);
+                            planets[i].ships.splice(enemy, 1);
+                            planets[i].ships.splice(s, 1);
+                        }
                     }
                 }
             }
