@@ -1,4 +1,6 @@
 # pixijs-game
-Game built using the PixiJS framework
+War game built using the PixiJS framework
 
-https://skotz.github.io/pixijs-game/
+[Play a Game!](https://skotz.github.io/pixijs-game/)
+
+![Screenshot](/img/screenshot.png)
