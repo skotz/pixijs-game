@@ -67,7 +67,7 @@ var planets = [];
 var generageMap = function (numTeams, numPlanets, minLevel, maxLevel, minPower, maxPower) {
     var border = 100;
     var minDist = 50;
-    for (var t = 0; t < numTeams; t++) {
+    for (var t = 1; t <= numTeams; t++) {
         for (var p = 0; p < numPlanets; p++) {
             var level = Math.ceil(Math.random() * (maxLevel - minLevel) + minLevel);
             var power = Math.floor(Math.random() * (maxPower - minPower) + minPower);
@@ -95,7 +95,7 @@ var generageMap = function (numTeams, numPlanets, minLevel, maxLevel, minPower, 
             
             planets.push({
                 team: t,
-                color: playerColors[t],
+                color: playerColors[t - 1],
                 x: x,
                 y: y,
                 power: power,
