@@ -134,23 +134,17 @@ var createPlanetSprite = function (planet) {
     sprite.hitArea = new PIXI.Circle(0, 0, upscale);
     
     sprite.pointerdown = function () {
-        if (selectedIndex == -1) {
-            // First selection
-            selectedIndex = planet;
-        }
+        // First selection
+        selectedIndex = planet;
     }    
     sprite.pointerup = function () {
-        if (selectedIndex == planet) {
-            // Unselect
-            selectedIndex = -1;
-        } else if (selectedIndex == -1) {
-            // First selection
-            selectedIndex = planet;
-        } else {
-            // Attack
+        // Attack
+        if (selectedIndex != planet && selectedIndex != -1) {
             moveShips(selectedIndex, planet);
-            selectedIndex = -1;
         }
+        
+        // Unselect
+        selectedIndex = -1;
     }
     
     return sprite;
